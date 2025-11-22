@@ -1,7 +1,11 @@
 import React from 'react';
-import { Play, Settings, Layers, Cpu, Activity, Database } from 'lucide-react';
+import { Play, Settings, Layers, Cpu, Activity, Database, Cloud } from 'lucide-react';
 
-export const FlowNavigator = () => {
+interface FlowNavigatorProps {
+    onCloudConnect?: () => void;
+}
+
+export const FlowNavigator = ({ onCloudConnect }: FlowNavigatorProps) => {
     const sections = [
         {
             title: 'PROJECT MANAGER',
@@ -34,6 +38,12 @@ export const FlowNavigator = () => {
             items: [
                 { name: 'Generate Bitstream', icon: Cpu },
             ]
+        },
+        {
+            title: 'BRING UP',
+            items: [
+                { name: 'Cloud Connect', icon: Cloud, onClick: onCloudConnect },
+            ]
         }
     ];
 
@@ -47,9 +57,10 @@ export const FlowNavigator = () => {
                     {section.items.map((item, itemIdx) => (
                         <button
                             key={itemIdx}
+                            onClick={'onClick' in item ? item.onClick : undefined}
                             className="w-full px-4 py-2 flex items-center gap-3 hover:bg-vivado-border text-sm transition-colors text-left"
                         >
-                            <item.icon size={16} className={item.action ? "text-green-500" : "text-blue-400"} />
+                            <item.icon size={16} className={'action' in item && item.action ? "text-green-500" : "text-blue-400"} />
                             <span>{item.name}</span>
                         </button>
                     ))}

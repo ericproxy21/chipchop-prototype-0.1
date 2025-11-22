@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import auth, projects, git, collaboration
+from routers import auth, projects, git, collaboration, copilot, cloud
 
 app = FastAPI(title="ChipChop Prototype 0.1 Backend")
 
@@ -17,6 +17,8 @@ app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(projects.router, prefix="/api/projects", tags=["projects"])
 app.include_router(git.router, prefix="/api/git", tags=["git"])
 app.include_router(collaboration.router, prefix="/api/collab", tags=["collaboration"])
+app.include_router(copilot.router, prefix="/api/copilot", tags=["copilot"])
+app.include_router(cloud.router, prefix="/api/cloud", tags=["cloud"])
 
 @app.get("/")
 def read_root():
