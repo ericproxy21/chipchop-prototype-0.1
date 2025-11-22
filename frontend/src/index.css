@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+@theme {
+  --color-vivado-bg: #1e1e1e;
+  --color-vivado-panel: #252526;
+  --color-vivado-border: #3e3e42;
+  --color-vivado-accent: #007acc;
+  --color-vivado-text: #cccccc;
+}
+
+@layer base {
+  body {
+    @apply bg-vivado-bg text-vivado-text;
+  }
+}
