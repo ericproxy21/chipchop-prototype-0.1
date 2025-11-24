@@ -7,6 +7,9 @@ import { TclConsole } from './TclConsole';
 import { GitControls } from './GitControls';
 import { CollaborationStatus } from './CollaborationStatus';
 import { CloudConnectModal } from './CloudConnectModal';
+import { ReportsModal } from './ReportsModal';
+import { RunProgressModal } from './RunProgressModal';
+import { SchematicModal } from './SchematicModal';
 import { Copilot } from './Copilot';
 import { PanelRight } from 'lucide-react';
 
@@ -15,7 +18,22 @@ export const Workspace = () => {
     const [activeFile, setActiveFile] = useState<string | null>(null);
     const [showCopilot, setShowCopilot] = useState(true);
     const [showCloudModal, setShowCloudModal] = useState(false);
+    const [showReportsModal, setShowReportsModal] = useState(false);
+    const [showRunModal, setShowRunModal] = useState(false);
+    const [showSchematicModal, setShowSchematicModal] = useState(false);
+    const [reportType, setReportType] = useState<'synthesis' | 'implementation' | 'bitstream'>('synthesis');
+    const [runType, setRunType] = useState<'synthesis' | 'implementation' | 'bitstream'>('synthesis');
     const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+    const handleViewReports = (type: 'synthesis' | 'implementation' | 'bitstream') => {
+        setReportType(type);
+        setShowReportsModal(true);
+    };
+
+    const handleRunProcess = (type: 'synthesis' | 'implementation' | 'bitstream') => {
+        setRunType(type);
+        setShowRunModal(true);
+    };
 
     return (
         <div className="flex h-screen bg-vivado-bg text-vivado-text overflow-hidden">
@@ -24,7 +42,12 @@ export const Workspace = () => {
                 <div className="p-4 border-b border-vivado-border font-bold bg-vivado-panel">
                     Flow Navigator
                 </div>
-                <FlowNavigator onCloudConnect={() => setShowCloudModal(true)} />
+                <FlowNavigator
+                    onCloudConnect={() => setShowCloudModal(true)}
+                    onViewReports={handleViewReports}
+                    onRunProcess={handleRunProcess}
+                    onViewSchematic={() => setShowSchematicModal(true)}
+                />
             </div>
 
             {/* Middle - Sources and Hierarchy */}
@@ -80,6 +103,23 @@ export const Workspace = () => {
                 isOpen={showCloudModal}
                 onClose={() => setShowCloudModal(false)}
                 projectId={projectId || ''}
+            />
+
+            <ReportsModal
+                isOpen={showReportsModal}
+                onClose={() => setShowReportsModal(false)}
+                reportType={reportType}
+            />
+
+            <RunProgressModal
+                isOpen={showRunModal}
+                onClose={() => setShowRunModal(false)}
+                runType={runType}
+            />
+
+            <SchematicModal
+                isOpen={showSchematicModal}
+                onClose={() => setShowSchematicModal(false)}
             />
         </div>
     );

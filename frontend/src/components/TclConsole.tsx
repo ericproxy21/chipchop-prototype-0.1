@@ -7,14 +7,14 @@ interface TclConsoleProps {
 export const TclConsole = ({ projectId }: TclConsoleProps) => {
     const [input, setInput] = useState('');
     const [history, setHistory] = useState<string[]>([
-        '# Vivado v2024.1 (64-bit)',
-        '# SW Build 1234567 on Fri Nov 22 11:00:00 MST 2024',
+        '# ChipChop v0.1 (64-bit)',
+        '# Prototype Build on Fri Nov 22 2024',
         `# Current project: ${projectId || 'None'}`,
     ]);
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter') {
-            setHistory([...history, `vivado% ${input}`, '# Command executed successfully']);
+            setHistory([...history, `chipchop% ${input}`, '# Command executed successfully']);
             setInput('');
         }
     };
@@ -30,7 +30,7 @@ export const TclConsole = ({ projectId }: TclConsoleProps) => {
                 ))}
             </div>
             <div className="flex items-center gap-2 p-2 bg-vivado-panel border-t border-vivado-border">
-                <span className="text-blue-400">vivado%</span>
+                <span className="text-blue-400">chipchop%</span>
                 <input
                     type="text"
                     value={input}

@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import List
 import os
 import shutil
+import json
 from datetime import datetime
 
 router = APIRouter()
@@ -16,12 +17,14 @@ if not os.path.exists(PROJECTS_DIR):
 class Project(BaseModel):
     id: str
     name: str
+    description: str = ""
     path: str
     created_at: str
     last_modified: str
 
 class CreateProjectRequest(BaseModel):
     name: str
+    description: str = ""
 
 @router.get("/", response_model=List[Project])
 async def list_projects():
@@ -33,9 +36,22 @@ async def list_projects():
         project_path = os.path.join(PROJECTS_DIR, project_name)
         if os.path.isdir(project_path):
             stats = os.stat(project_path)
+            
+            # Try to read metadata file
+            metadata_path = os.path.join(project_path, "metadata.json")
+            description = ""
+            if os.path.exists(metadata_path):
+                try:
+                    with open(metadata_path, 'r') as f:
+                        metadata = json.load(f)
+                        description = metadata.get('description', '')
+                except Exception:
+                    pass  # If metadata file is corrupted, use empty description
+            
             projects.append(Project(
-                id=project_name, # Simple ID for now
+                id=project_name,
                 name=project_name,
+                description=description,
                 path=os.path.abspath(project_path),
                 created_at=datetime.fromtimestamp(stats.st_ctime).isoformat(),
                 last_modified=datetime.fromtimestamp(stats.st_mtime).isoformat()
@@ -51,6 +67,17 @@ async def create_project(request: CreateProjectRequest):
     
     try:
         os.makedirs(project_path)
+        
+        # Create metadata file
+        metadata = {
+            'name': request.name,
+            'description': request.description,
+            'created_at': datetime.now().isoformat()
+        }
+        metadata_path = os.path.join(project_path, "metadata.json")
+        with open(metadata_path, 'w') as f:
+            json.dump(metadata, f, indent=2)
+        
         # Create a dummy project file
         with open(os.path.join(project_path, "project.v"), "w") as f:
             f.write(f"// Project: {request.name}\n// Created: {datetime.now()}\n")
@@ -59,6 +86,7 @@ async def create_project(request: CreateProjectRequest):
         return Project(
             id=request.name,
             name=request.name,
+            description=request.description,
             path=os.path.abspath(project_path),
             created_at=datetime.fromtimestamp(stats.st_ctime).isoformat(),
             last_modified=datetime.fromtimestamp(stats.st_mtime).isoformat()
