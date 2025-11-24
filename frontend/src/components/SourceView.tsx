@@ -1,12 +1,10 @@
-import React from 'react';
 import { FileCode, Folder } from 'lucide-react';
 
 interface SourceViewProps {
-    projectId?: string;
     onFileSelect: (file: string) => void;
 }
 
-export const SourceView = ({ projectId, onFileSelect }: SourceViewProps) => {
+export const SourceView = ({ onFileSelect }: SourceViewProps) => {
     // Mock data for now
     const files = [
         { name: 'top.v', type: 'verilog' },

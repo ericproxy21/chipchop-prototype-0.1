@@ -12,67 +12,81 @@ import {
     type Connection,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { X, Save, Download, Code, Plus, Trash2 } from 'lucide-react';
-import type { ComponentType, SchematicDesign } from '../types/design';
-import { ALL_COMPONENTS, getComponentDefinition } from './SchematicComponents';
-import { generateVerilogFromSchematic } from '../utils/SchematicCodeGen';
+import { X, Save, Download, Code, Plus, Trash2, Settings } from 'lucide-react';
+import type { BlockType, BlockDiagram } from '../types/design';
+import { ALL_BLOCKS, getBlockDefinition } from './BlockComponents';
+import { generateWrapperFromBlockDiagram, generateConstraints } from '../utils/BlockCodeGen';
 
-interface SchematicEditorProps {
+interface BlockDiagramEditorProps {
     isOpen: boolean;
     onClose: () => void;
     designName?: string;
-    onSave?: (design: SchematicDesign) => void;
+    onSave?: (design: BlockDiagram) => void;
 }
 
-// Custom node component for schematic components
-const SchematicNode = ({ data }: { data: any }) => {
-    const { type, label } = data;
+// Custom node component for IP blocks
+const IPBlockNode = ({ data }: { data: any }) => {
+    const { type, name, category } = data;
+
+    const categoryColors: Record<string, string> = {
+        processor: 'border-purple-500 bg-purple-900/30',
+        memory: 'border-green-500 bg-green-900/30',
+        peripheral: 'border-yellow-500 bg-yellow-900/30',
+        interconnect: 'border-blue-500 bg-blue-900/30',
+        clock: 'border-red-500 bg-red-900/30',
+        custom: 'border-gray-500 bg-gray-900/30',
+    };
+
+    const colorClass = categoryColors[category] || 'border-gray-500 bg-gray-900/30';
 
     return (
-        <div className="bg-gray-700 border-2 border-blue-400 rounded px-4 py-2 min-w-[80px] text-center">
-            <div className="text-xs text-gray-400 mb-1">{type}</div>
-            <div className="text-white font-semibold text-sm">{label}</div>
+        <div className={`border-2 rounded-lg px-6 py-4 min-w-[140px] ${colorClass}`}>
+            <div className="text-xs text-gray-400 mb-1 uppercase">{category}</div>
+            <div className="text-white font-bold text-sm mb-1">{name}</div>
+            <div className="text-xs text-gray-500">{type}</div>
         </div>
     );
 };
 
 const nodeTypes = {
-    schematicComponent: SchematicNode,
+    ipBlock: IPBlockNode,
 };
 
-export const SchematicEditor = ({ isOpen, onClose, designName = 'untitled', onSave }: SchematicEditorProps) => {
+export const BlockDiagramEditor = ({ isOpen, onClose, designName = 'system', onSave }: BlockDiagramEditorProps) => {
     const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState<any>([]);
-    const [selectedCategory, setSelectedCategory] = useState<string>('logic');
+    const [selectedCategory, setSelectedCategory] = useState<string>('processor');
     const [showCodeModal, setShowCodeModal] = useState(false);
     const [generatedCode, setGeneratedCode] = useState('');
+    const [codeType, setCodeType] = useState<'wrapper' | 'constraints'>('wrapper');
 
     const onConnect = useCallback(
-        (params: Connection) => setEdges((eds) => addEdge(params, eds)),
+        (params: Connection) => setEdges((eds) => addEdge({ ...params, animated: true }, eds)),
         [setEdges]
     );
 
     const categories = useMemo(() => {
-        const cats = new Set(ALL_COMPONENTS.map(c => c.category));
+        const cats = new Set(ALL_BLOCKS.map(b => b.category));
         return Array.from(cats);
     }, []);
 
-    const filteredComponents = useMemo(() => {
-        return ALL_COMPONENTS.filter(c => c.category === selectedCategory);
+    const filteredBlocks = useMemo(() => {
+        return ALL_BLOCKS.filter(b => b.category === selectedCategory);
     }, [selectedCategory]);
 
-    const addComponent = useCallback((componentType: ComponentType) => {
-        const definition = getComponentDefinition(componentType);
+    const addBlock = useCallback((blockType: BlockType) => {
+        const definition = getBlockDefinition(blockType);
         if (!definition) return;
 
         const newNode: Node = {
-            id: `${componentType}-${Date.now()}`,
-            type: 'schematicComponent',
-            position: { x: 250, y: 100 + nodes.length * 80 },
+            id: `${blockType}-${Date.now()}`,
+            type: 'ipBlock',
+            position: { x: 300, y: 100 + nodes.length * 120 },
             data: {
-                type: componentType,
-                label: definition.label,
-                ports: definition.defaultPorts,
+                type: blockType,
+                name: definition.label,
+                category: definition.category,
+                interfaces: definition.defaultInterfaces,
             },
         };
 
@@ -80,30 +94,29 @@ export const SchematicEditor = ({ isOpen, onClose, designName = 'untitled', onSa
     }, [nodes.length, setNodes]);
 
     const clearCanvas = useCallback(() => {
-        if (confirm('Clear all components? This cannot be undone.')) {
+        if (confirm('Clear all blocks? This cannot be undone.')) {
             setNodes([]);
             setEdges([]);
         }
     }, [setNodes, setEdges]);
 
-    const handleGenerateCode = useCallback(() => {
-        // Convert React Flow nodes/edges to SchematicDesign format
-        const design: SchematicDesign = {
+    const handleGenerateCode = useCallback((type: 'wrapper' | 'constraints') => {
+        const diagram: BlockDiagram = {
             id: Date.now().toString(),
             name: designName,
-            components: nodes.map(node => ({
+            blocks: nodes.map(node => ({
                 id: node.id,
-                type: node.data.type as ComponentType,
-                label: node.data.label as string,
+                type: node.data.type as BlockType,
+                name: node.data.name as string,
                 position: node.position,
-                ports: (node.data.ports || []) as any[],
+                interfaces: (node.data.interfaces || []) as any[],
                 properties: node.data.properties as any,
             })),
-            wires: edges.map(edge => ({
+            connections: edges.map(edge => ({
                 id: edge.id,
                 source: edge.source,
                 target: edge.target,
-                label: edge.label as string,
+                type: 'AXI4_LITE',
             })),
             metadata: {
                 created: new Date().toISOString(),
@@ -111,33 +124,39 @@ export const SchematicEditor = ({ isOpen, onClose, designName = 'untitled', onSa
             },
         };
 
-        const result = generateVerilogFromSchematic(design, {
-            language: 'verilog',
-            includeComments: true,
-            includeTestbench: false,
-        });
+        let code = '';
+        if (type === 'wrapper') {
+            code = generateWrapperFromBlockDiagram(diagram, {
+                language: 'verilog',
+                includeComments: true,
+                includeTestbench: false,
+            });
+        } else {
+            code = generateConstraints(diagram);
+        }
 
-        setGeneratedCode(result.module);
+        setGeneratedCode(code);
+        setCodeType(type);
         setShowCodeModal(true);
     }, [nodes, edges, designName]);
 
     const handleSave = useCallback(() => {
-        const design: SchematicDesign = {
+        const diagram: BlockDiagram = {
             id: Date.now().toString(),
             name: designName,
-            components: nodes.map(node => ({
+            blocks: nodes.map(node => ({
                 id: node.id,
-                type: node.data.type as ComponentType,
-                label: node.data.label as string,
+                type: node.data.type as BlockType,
+                name: node.data.name as string,
                 position: node.position,
-                ports: (node.data.ports || []) as any[],
+                interfaces: (node.data.interfaces || []) as any[],
                 properties: node.data.properties as any,
             })),
-            wires: edges.map(edge => ({
+            connections: edges.map(edge => ({
                 id: edge.id,
                 source: edge.source,
                 target: edge.target,
-                label: edge.label as string,
+                type: 'AXI4_LITE',
             })),
             metadata: {
                 created: new Date().toISOString(),
@@ -146,23 +165,23 @@ export const SchematicEditor = ({ isOpen, onClose, designName = 'untitled', onSa
         };
 
         if (onSave) {
-            onSave(design);
+            onSave(diagram);
         }
 
-        // Also save to localStorage
-        localStorage.setItem(`schematic_${designName}`, JSON.stringify(design));
-        alert('Schematic saved successfully!');
+        localStorage.setItem(`blockdiagram_${designName}`, JSON.stringify(diagram));
+        alert('Block diagram saved successfully!');
     }, [nodes, edges, designName, onSave]);
 
     const downloadCode = useCallback(() => {
+        const extension = codeType === 'wrapper' ? 'v' : 'xdc';
         const blob = new Blob([generatedCode], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${designName}.v`;
+        a.download = `${designName}_top.${extension}`;
         a.click();
         URL.revokeObjectURL(url);
-    }, [generatedCode, designName]);
+    }, [generatedCode, designName, codeType]);
 
     if (!isOpen) return null;
 
@@ -171,21 +190,28 @@ export const SchematicEditor = ({ isOpen, onClose, designName = 'untitled', onSa
             <div className="bg-vivado-panel border border-vivado-border rounded-lg w-[95vw] h-[90vh] flex flex-col shadow-2xl">
                 {/* Header */}
                 <div className="flex justify-between items-center p-4 border-b border-vivado-border">
-                    <h2 className="text-xl font-bold text-vivado-text">Schematic Editor - {designName}</h2>
+                    <h2 className="text-xl font-bold text-vivado-text">Block Diagram Editor - {designName}</h2>
                     <div className="flex items-center gap-2">
                         <button
                             onClick={handleSave}
                             className="px-3 py-1.5 bg-green-600 hover:bg-green-700 rounded text-white text-sm flex items-center gap-1"
-                            title="Save Schematic"
+                            title="Save Block Diagram"
                         >
                             <Save size={16} /> Save
                         </button>
                         <button
-                            onClick={handleGenerateCode}
+                            onClick={() => handleGenerateCode('wrapper')}
                             className="px-3 py-1.5 bg-vivado-accent hover:bg-blue-600 rounded text-white text-sm flex items-center gap-1"
-                            title="Generate RTL Code"
+                            title="Generate Wrapper"
                         >
-                            <Code size={16} /> Generate RTL
+                            <Code size={16} /> Wrapper
+                        </button>
+                        <button
+                            onClick={() => handleGenerateCode('constraints')}
+                            className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 rounded text-white text-sm flex items-center gap-1"
+                            title="Generate Constraints"
+                        >
+                            <Settings size={16} /> XDC
                         </button>
                         <button
                             onClick={clearCanvas}
@@ -201,9 +227,9 @@ export const SchematicEditor = ({ isOpen, onClose, designName = 'untitled', onSa
                 </div>
 
                 <div className="flex-1 flex overflow-hidden">
-                    {/* Component Palette */}
+                    {/* IP Block Library */}
                     <div className="w-64 border-r border-vivado-border bg-vivado-bg p-4 overflow-y-auto">
-                        <h3 className="text-sm font-bold text-gray-300 mb-3">Component Library</h3>
+                        <h3 className="text-sm font-bold text-gray-300 mb-3">IP Block Library</h3>
 
                         {/* Category Tabs */}
                         <div className="flex flex-wrap gap-1 mb-4">
@@ -221,18 +247,18 @@ export const SchematicEditor = ({ isOpen, onClose, designName = 'untitled', onSa
                             ))}
                         </div>
 
-                        {/* Component List */}
+                        {/* Block List */}
                         <div className="space-y-2">
-                            {filteredComponents.map(comp => (
+                            {filteredBlocks.map(block => (
                                 <button
-                                    key={comp.type}
-                                    onClick={() => addComponent(comp.type)}
+                                    key={block.type}
+                                    onClick={() => addBlock(block.type)}
                                     className="w-full text-left px-3 py-2 bg-vivado-panel border border-vivado-border rounded hover:border-vivado-accent transition-colors group"
                                 >
                                     <div className="flex items-center justify-between">
                                         <div>
-                                            <div className="text-sm font-medium text-white">{comp.label}</div>
-                                            <div className="text-xs text-gray-400">{comp.type}</div>
+                                            <div className="text-sm font-medium text-white">{block.label}</div>
+                                            <div className="text-xs text-gray-400">{block.type}</div>
                                         </div>
                                         <Plus size={16} className="text-gray-400 group-hover:text-vivado-accent" />
                                     </div>
@@ -255,12 +281,22 @@ export const SchematicEditor = ({ isOpen, onClose, designName = 'untitled', onSa
                             <Background color="#2a2a2a" gap={20} />
                             <Controls />
                             <MiniMap
-                                nodeColor="#374151"
+                                nodeColor={(node) => {
+                                    const colors: Record<string, string> = {
+                                        processor: '#9333ea',
+                                        memory: '#22c55e',
+                                        peripheral: '#eab308',
+                                        interconnect: '#3b82f6',
+                                        clock: '#ef4444',
+                                        custom: '#6b7280',
+                                    };
+                                    return colors[node.data?.category as string] || '#6b7280';
+                                }}
                                 maskColor="rgba(0, 0, 0, 0.6)"
                                 className="bg-vivado-panel border border-vivado-border"
                             />
                             <Panel position="top-right" className="bg-vivado-panel border border-vivado-border rounded p-2 text-xs text-gray-400">
-                                <div>Components: {nodes.length}</div>
+                                <div>IP Blocks: {nodes.length}</div>
                                 <div>Connections: {edges.length}</div>
                             </Panel>
                         </ReactFlow>
@@ -272,7 +308,9 @@ export const SchematicEditor = ({ isOpen, onClose, designName = 'untitled', onSa
                     <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-10">
                         <div className="bg-vivado-panel border border-vivado-border rounded-lg w-[80%] h-[80%] flex flex-col">
                             <div className="flex justify-between items-center p-4 border-b border-vivado-border">
-                                <h3 className="text-lg font-bold text-white">Generated Verilog Code</h3>
+                                <h3 className="text-lg font-bold text-white">
+                                    Generated {codeType === 'wrapper' ? 'Verilog Wrapper' : 'XDC Constraints'}
+                                </h3>
                                 <div className="flex gap-2">
                                     <button
                                         onClick={downloadCode}

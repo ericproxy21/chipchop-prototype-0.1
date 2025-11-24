@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { X, BarChart3, Clock, Zap, AlertCircle, CheckCircle } from 'lucide-react';
 
 interface ReportsModalProps {
@@ -231,8 +231,8 @@ export const ReportsModal = ({ isOpen, onClose, reportType }: ReportsModalProps)
                                 key={tab}
                                 onClick={() => setActiveTab(tab as any)}
                                 className={`flex-1 px-4 py-3 text-sm font-medium capitalize flex items-center justify-center gap-2 ${activeTab === tab
-                                        ? 'bg-vivado-bg text-vivado-accent border-b-2 border-vivado-accent'
-                                        : 'text-gray-400 hover:text-white'
+                                    ? 'bg-vivado-bg text-vivado-accent border-b-2 border-vivado-accent'
+                                    : 'text-gray-400 hover:text-white'
                                     }`}
                             >
                                 {getTabIcon(tab)}

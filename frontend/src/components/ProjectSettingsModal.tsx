@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { X, UserPlus, Trash2, Settings as SettingsIcon } from 'lucide-react';
 
 interface Member {
@@ -22,7 +22,7 @@ interface ProjectSettingsModalProps {
 export const ProjectSettingsModal = ({
     isOpen,
     onClose,
-    projectId,
+    projectId: _projectId,
     projectName,
     members,
     onMembersUpdate

@@ -1,4 +1,3 @@
-import React from 'react';
 import { Play, Settings, Layers, Cpu, Activity, Database, Cloud, FileText } from 'lucide-react';
 
 interface FlowNavigatorProps {

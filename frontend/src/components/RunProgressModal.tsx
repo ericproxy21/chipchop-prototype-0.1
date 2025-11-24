@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Play, CheckCircle } from 'lucide-react';
 
 interface RunProgressModalProps {
@@ -134,18 +134,18 @@ export const RunProgressModal = ({ isOpen, onClose, runType }: RunProgressModalP
                                 <div
                                     key={idx}
                                     className={`flex items-center gap-3 p-2 rounded ${idx === currentStage ? 'bg-vivado-accent/10 border border-vivado-accent' :
-                                            idx < currentStage ? 'bg-gray-700/50' : 'bg-vivado-bg'
+                                        idx < currentStage ? 'bg-gray-700/50' : 'bg-vivado-bg'
                                         }`}
                                 >
                                     <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${idx < currentStage ? 'bg-vivado-accent text-white' :
-                                            idx === currentStage ? 'bg-vivado-accent text-white animate-pulse' :
-                                                'bg-gray-600 text-gray-400'
+                                        idx === currentStage ? 'bg-vivado-accent text-white animate-pulse' :
+                                            'bg-gray-600 text-gray-400'
                                         }`}>
                                         {idx < currentStage ? '✓' : idx + 1}
                                     </div>
                                     <span className={`text-sm ${idx === currentStage ? 'text-white font-medium' :
-                                            idx < currentStage ? 'text-gray-300' :
-                                                'text-gray-500'
+                                        idx < currentStage ? 'text-gray-300' :
+                                            'text-gray-500'
                                         }`}>
                                         {stage.name}
                                     </span>

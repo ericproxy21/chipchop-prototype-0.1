@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { FlowNavigator } from './FlowNavigator';
 import { SourceView } from './SourceView';
@@ -9,13 +9,15 @@ import { CollaborationStatus } from './CollaborationStatus';
 import { CloudConnectModal } from './CloudConnectModal';
 import { ReportsModal } from './ReportsModal';
 import { RunProgressModal } from './RunProgressModal';
-import { SchematicModal } from './SchematicModal';
+import { SchematicEditor } from './SchematicModal';
 import { Copilot } from './Copilot';
+import { DesignNavigator } from './DesignNavigator';
 import { PanelRight } from 'lucide-react';
 
 export const Workspace = () => {
     const { projectId } = useParams();
     const [activeFile, setActiveFile] = useState<string | null>(null);
+    const [activeTab, setActiveTab] = useState<'source' | 'design' | 'schematic'>('source');
     const [showCopilot, setShowCopilot] = useState(true);
     const [showCloudModal, setShowCloudModal] = useState(false);
     const [showReportsModal, setShowReportsModal] = useState(false);
@@ -55,7 +57,7 @@ export const Workspace = () => {
                 <div className="p-2 border-b border-vivado-border font-semibold text-sm">
                     Sources
                 </div>
-                <SourceView projectId={projectId} onFileSelect={setActiveFile} />
+                <SourceView onFileSelect={setActiveFile} />
             </div>
 
             {/* Main Content Area */}
@@ -78,12 +80,60 @@ export const Workspace = () => {
                 <div className="flex-1 flex overflow-hidden">
                     {/* Editor / Viewer */}
                     <div className="flex-1 bg-vivado-bg relative flex flex-col">
+                        {/* Tab Navigation */}
+                        <div className="flex border-b border-vivado-border bg-vivado-panel">
+                            <button
+                                onClick={() => setActiveTab('source')}
+                                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'source'
+                                    ? 'border-vivado-accent text-white'
+                                    : 'border-transparent text-gray-400 hover:text-white'
+                                    }`}
+                            >
+                                Source
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('design')}
+                                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'design'
+                                    ? 'border-vivado-accent text-white'
+                                    : 'border-transparent text-gray-400 hover:text-white'
+                                    }`}
+                            >
+                                Design
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('schematic')}
+                                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'schematic'
+                                    ? 'border-vivado-accent text-white'
+                                    : 'border-transparent text-gray-400 hover:text-white'
+                                    }`}
+                            >
+                                Schematic View
+                            </button>
+                        </div>
+
                         <div className="flex-1 relative">
-                            {activeFile ? (
-                                <Editor fileId={activeFile} />
-                            ) : (
+                            {activeTab === 'source' && (
+                                activeFile ? (
+                                    <Editor fileId={activeFile} />
+                                ) : (
+                                    <div className="absolute inset-0 flex items-center justify-center text-gray-500">
+                                        Select a file to view
+                                    </div>
+                                )
+                            )}
+
+                            {activeTab === 'design' && (
+                                <DesignNavigator projectName={projectId || 'project'} />
+                            )}
+
+                            {activeTab === 'schematic' && (
                                 <div className="absolute inset-0 flex items-center justify-center text-gray-500">
-                                    Select a file to view
+                                    <button
+                                        onClick={() => setShowSchematicModal(true)}
+                                        className="bg-vivado-accent hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium"
+                                    >
+                                        Open Schematic Viewer
+                                    </button>
                                 </div>
                             )}
                         </div>
@@ -117,7 +167,7 @@ export const Workspace = () => {
                 runType={runType}
             />
 
-            <SchematicModal
+            <SchematicEditor
                 isOpen={showSchematicModal}
                 onClose={() => setShowSchematicModal(false)}
             />
