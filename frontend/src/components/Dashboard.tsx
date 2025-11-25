@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Folder, GitBranch, Clock, Settings, Users } from 'lucide-react';
-import { ProjectSettingsModal } from './ProjectSettingsModal';
+import { Plus, Folder, Clock, Settings, LogOut, Search, Users } from 'lucide-react';
 import { ProjectLandingPage } from './ProjectLandingPage';
+import { ProjectSettingsModal } from './ProjectSettingsModal';
+import { ScaffoldModal } from './ScaffoldModal';
 
 interface Member {
     id: string;
@@ -31,6 +32,8 @@ export const Dashboard = () => {
     const [showLandingPage, setShowLandingPage] = useState(false);
     const [showSettingsModal, setShowSettingsModal] = useState(false);
     const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+    const [showScaffoldModal, setShowScaffoldModal] = useState(false);
+    const [pendingProjectData, setPendingProjectData] = useState<{ name: string; description?: string; architecture?: string } | null>(null);
 
     useEffect(() => {
         fetchProjects();
@@ -83,26 +86,66 @@ export const Dashboard = () => {
                 description = `Cloned from ${data.repoUrl}`;
             }
 
+            // If it's a blank project, show the scaffold modal first
+            if (type === 'blank') {
+                setPendingProjectData({ name: projectName, description, architecture });
+                setShowScaffoldModal(true);
+                return;
+            }
+
+            // Otherwise proceed directly
+            await finalizeCreateProject({
+                name: projectName,
+                description,
+                architecture,
+                type,
+                ...(type === 'clone' && { repoUrl: data?.repoUrl })
+            });
+
+        } catch (error) {
+            console.error('Failed to initiate project creation', error);
+        }
+    };
+
+    const finalizeCreateProject = async (projectData: any) => {
+        try {
             const response = await fetch('http://localhost:8000/api/projects/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: projectName,
-                    description: description,
-                    architecture: architecture,
-                    type: type,
-                    ...(type === 'clone' && { repoUrl: data?.repoUrl })
-                }),
+                body: JSON.stringify(projectData),
             });
 
             if (response.ok) {
                 const newProject = await response.json();
                 setShowLandingPage(false);
+                setShowScaffoldModal(false);
+                setPendingProjectData(null);
                 fetchProjects();
                 navigate(`/workspace/${newProject.id}`);
             }
         } catch (error) {
             console.error('Failed to create project', error);
+        }
+    };
+
+    const handleScaffoldConfirm = (specs: string) => {
+        if (pendingProjectData) {
+            finalizeCreateProject({
+                ...pendingProjectData,
+                type: 'blank',
+                scaffold: true,
+                scaffoldSpecs: specs
+            });
+        }
+    };
+
+    const handleScaffoldSkip = () => {
+        if (pendingProjectData) {
+            finalizeCreateProject({
+                ...pendingProjectData,
+                type: 'blank',
+                scaffold: false
+            });
         }
     };
 
@@ -118,118 +161,130 @@ export const Dashboard = () => {
         setShowSettingsModal(true);
     };
 
-    const handleMembersUpdate = (projectId: string, members: Member[]) => {
+    const handleMembersUpdate = (projectId: string, updatedMembers: Member[]) => {
         setProjects(projects.map(p =>
-            p.id === projectId ? { ...p, members } : p
+            p.id === projectId ? { ...p, members: updatedMembers } : p
         ));
+
+        if (selectedProject && selectedProject.id === projectId) {
+            setSelectedProject({ ...selectedProject, members: updatedMembers });
+        }
     };
 
     return (
         <div className="min-h-screen bg-vivado-bg text-vivado-text p-8">
-            <header className="flex justify-between items-center mb-8">
-                <div>
-                    <h1 className="text-3xl font-bold">ChipChop Dashboard</h1>
-                    <p className="text-gray-400 mt-1">Welcome back, {user.username}</p>
-                </div>
-                <div className="flex items-center gap-4">
-                    <button
-                        onClick={() => setShowLandingPage(true)}
-                        className="bg-vivado-accent hover:bg-blue-600 text-white px-4 py-2 rounded flex items-center gap-2 transition-colors"
-                    >
-                        <Plus size={18} /> New Project
-                    </button>
-                    <button
-                        onClick={handleLogout}
-                        className="bg-vivado-panel border border-vivado-border px-4 py-2 rounded hover:bg-vivado-border transition-colors"
-                    >
-                        Logout
-                    </button>
-                </div>
-            </header>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {projects.map((project) => (
-                    <div
-                        key={project.id}
-                        onClick={() => navigate(`/workspace/${project.id}`)}
-                        className="bg-vivado-panel border border-vivado-border p-6 rounded-lg hover:border-vivado-accent cursor-pointer transition-all group relative"
-                    >
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="p-2 bg-vivado-bg rounded border border-vivado-border group-hover:border-vivado-accent transition-colors">
-                                <Folder className="text-vivado-accent" size={24} />
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <div className="flex items-center gap-1 text-xs text-gray-500">
-                                    <GitBranch size={12} />
-                                    <span>main</span>
-                                </div>
-                                <button
-                                    onClick={(e) => handleOpenSettings(project, e)}
-                                    className="p-1.5 hover:bg-vivado-border rounded transition-colors text-gray-400 hover:text-vivado-accent"
-                                    title="Project Settings"
-                                >
-                                    <Settings size={16} />
-                                </button>
-                            </div>
+            <div className="max-w-7xl mx-auto">
+                <div className="flex justify-between items-center mb-8">
+                    <h1 className="text-2xl font-bold flex items-center gap-2">
+                        <div className="w-8 h-8 bg-vivado-accent rounded flex items-center justify-center text-white font-bold">
+                            CC
                         </div>
-                        <h3 className="text-xl font-semibold mb-2">{project.name}</h3>
-                        {project.description && (
-                            <p className="text-sm text-gray-400 mb-3 line-clamp-2">{project.description}</p>
-                        )}
-
-                        {/* Members Section */}
-                        <div className="mb-3">
-                            <div className="flex items-center gap-2 mb-2">
-                                <Users size={14} className="text-gray-400" />
-                                <span className="text-xs text-gray-400">Members</span>
-                                <span className="text-xs bg-vivado-bg px-1.5 py-0.5 rounded text-gray-300">{project.members.length}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                                {project.members.slice(0, 5).map((member) => (
-                                    <div
-                                        key={member.id}
-                                        className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs border-2 border-vivado-panel"
-                                        style={{ backgroundColor: member.color }}
-                                        title={`${member.username} (${member.role})`}
-                                    >
-                                        {member.initials}
-                                    </div>
-                                ))}
-                                {project.members.length > 5 && (
-                                    <div className="w-8 h-8 rounded-full flex items-center justify-center bg-gray-700 text-gray-300 text-xs font-medium border-2 border-vivado-panel">
-                                        +{project.members.length - 5}
-                                    </div>
-                                )}
-                            </div>
+                        ChipChop
+                    </h1>
+                    <div className="flex items-center gap-4">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                            <input
+                                type="text"
+                                placeholder="Search projects..."
+                                className="bg-vivado-panel border border-vivado-border rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:border-vivado-accent w-64"
+                            />
                         </div>
-
-                        <div className="flex items-center gap-2 text-sm text-gray-400">
-                            <Clock size={14} />
-                            <span>{new Date(project.last_modified).toLocaleDateString()}</span>
-                        </div>
+                        <button
+                            onClick={() => setShowLandingPage(true)}
+                            className="bg-vivado-accent hover:bg-blue-600 text-white px-4 py-2 rounded flex items-center gap-2 transition-colors"
+                        >
+                            <Plus size={18} />
+                            New Project
+                        </button>
+                        <button
+                            onClick={handleLogout}
+                            className="p-2 hover:bg-vivado-panel rounded-full text-gray-400 hover:text-white transition-colors"
+                        >
+                            <LogOut size={20} />
+                        </button>
                     </div>
-                ))}
+                </div>
 
-                {projects.length === 0 && (
-                    <div className="col-span-3 text-center py-12 text-gray-500">
-                        No projects found. Create one to get started.
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {projects.map((project) => (
+                        <div
+                            key={project.id}
+                            onClick={() => navigate(`/workspace/${project.id}`)}
+                            className="bg-vivado-panel border border-vivado-border rounded-lg p-6 hover:border-vivado-accent cursor-pointer transition-all hover:shadow-lg group"
+                        >
+                            <div className="flex justify-between items-start mb-4">
+                                <div className="p-3 bg-blue-900/30 rounded-lg text-blue-400 group-hover:text-white group-hover:bg-vivado-accent transition-colors">
+                                    <Folder size={24} />
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="text-xs font-mono bg-vivado-bg px-2 py-1 rounded text-gray-400 border border-vivado-border">
+                                        {project.architecture || 'zynq-7000'}
+                                    </div>
+                                    <button
+                                        onClick={(e) => handleOpenSettings(project, e)}
+                                        className="p-1.5 hover:bg-vivado-border rounded transition-colors text-gray-400 hover:text-vivado-accent"
+                                        title="Project Settings"
+                                    >
+                                        <Settings size={16} />
+                                    </button>
+                                </div>
+                            </div>
+                            <h3 className="text-xl font-semibold mb-2">{project.name}</h3>
+                            {project.description && (
+                                <p className="text-sm text-gray-400 mb-3 line-clamp-2">{project.description}</p>
+                            )}
+
+                            {/* Members Section */}
+                            <div className="mb-3">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Users size={14} className="text-gray-400" />
+                                    <span className="text-xs text-gray-400">Members</span>
+                                    <span className="text-xs bg-vivado-bg px-1.5 py-0.5 rounded text-gray-300">{project.members.length}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    {project.members.slice(0, 5).map((member) => (
+                                        <div
+                                            key={member.id}
+                                            className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs border-2 border-vivado-panel"
+                                            style={{ backgroundColor: member.color }}
+                                            title={`${member.username} (${member.role})`}
+                                        >
+                                            {member.initials}
+                                        </div>
+                                    ))}
+                                    {project.members.length > 5 && (
+                                        <div className="w-8 h-8 rounded-full flex items-center justify-center bg-gray-700 text-gray-300 text-xs font-medium border-2 border-vivado-panel">
+                                            +{project.members.length - 5}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 text-sm text-gray-400">
+                                <Clock size={14} />
+                                <span>{new Date(project.last_modified).toLocaleDateString()}</span>
+                            </div>
+                        </div>
+                    ))}
+
+                    {projects.length === 0 && (
+                        <div className="col-span-3 text-center py-12 text-gray-500">
+                            No projects found. Create one to get started.
+                        </div>
+                    )}
+                </div>
+
+                {showLandingPage && (
+                    <div className="fixed inset-0 z-50">
+                        <ProjectLandingPage
+                            onCreateProject={handleCreateProject}
+                            onClose={() => setShowLandingPage(false)}
+                        />
                     </div>
                 )}
-            </div>
 
-
-
-            {showLandingPage && (
-                <div className="fixed inset-0 z-50">
-                    <ProjectLandingPage
-                        onCreateProject={handleCreateProject}
-                        onClose={() => setShowLandingPage(false)}
-                    />
-                </div>
-            )}
-
-            {
-                showSettingsModal && selectedProject && (
+                {showSettingsModal && selectedProject && (
                     <ProjectSettingsModal
                         isOpen={showSettingsModal}
                         onClose={() => setShowSettingsModal(false)}
@@ -239,8 +294,15 @@ export const Dashboard = () => {
                         members={selectedProject.members}
                         onMembersUpdate={(members) => handleMembersUpdate(selectedProject.id, members)}
                     />
-                )
-            }
-        </div >
+                )}
+
+                <ScaffoldModal
+                    isOpen={showScaffoldModal}
+                    onClose={() => setShowScaffoldModal(false)}
+                    onConfirm={handleScaffoldConfirm}
+                    onSkip={handleScaffoldSkip}
+                />
+            </div>
+        </div>
     );
 };
