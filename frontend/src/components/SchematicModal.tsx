@@ -14,14 +14,17 @@ import {
 import '@xyflow/react/dist/style.css';
 import { X, Save, Download, Code, Plus, Trash2 } from 'lucide-react';
 import type { ComponentType, SchematicDesign } from '../types/design';
-import { ALL_COMPONENTS, getComponentDefinition } from './SchematicComponents';
+import { getComponentDefinition } from './SchematicComponents';
 import { generateVerilogFromSchematic } from '../utils/SchematicCodeGen';
+import { MICROARCHITECTURE_COMPONENTS } from './MicroarchitectureComponents';
+import { LOGIC_GATES, SEQUENTIAL_ELEMENTS, ARITHMETIC_COMPONENTS, MULTIPLEXERS, IO_COMPONENTS } from './SchematicComponents';
 
 interface SchematicEditorProps {
     isOpen: boolean;
     onClose: () => void;
     designName?: string;
     onSave?: (design: SchematicDesign) => void;
+    mode?: 'schematic' | 'microarchitecture';
 }
 
 // Custom node component for schematic components
@@ -40,10 +43,10 @@ const nodeTypes = {
     schematicComponent: SchematicNode,
 };
 
-export const SchematicEditor = ({ isOpen, onClose, designName = 'untitled', onSave }: SchematicEditorProps) => {
+export const SchematicEditor = ({ isOpen, onClose, designName = 'untitled', onSave, mode = 'schematic' }: SchematicEditorProps) => {
     const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState<any>([]);
-    const [selectedCategory, setSelectedCategory] = useState<string>('logic');
+    const [selectedCategory, setSelectedCategory] = useState<string>(mode === 'microarchitecture' ? 'cpu_core' : 'logic');
     const [showCodeModal, setShowCodeModal] = useState(false);
     const [generatedCode, setGeneratedCode] = useState('');
 
@@ -52,14 +55,27 @@ export const SchematicEditor = ({ isOpen, onClose, designName = 'untitled', onSa
         [setEdges]
     );
 
+    const availableComponents = useMemo(() => {
+        if (mode === 'microarchitecture') {
+            return MICROARCHITECTURE_COMPONENTS;
+        }
+        return [
+            ...LOGIC_GATES,
+            ...SEQUENTIAL_ELEMENTS,
+            ...ARITHMETIC_COMPONENTS,
+            ...MULTIPLEXERS,
+            ...IO_COMPONENTS,
+        ];
+    }, [mode]);
+
     const categories = useMemo(() => {
-        const cats = new Set(ALL_COMPONENTS.map(c => c.category));
+        const cats = new Set(availableComponents.map(c => c.category));
         return Array.from(cats);
-    }, []);
+    }, [availableComponents]);
 
     const filteredComponents = useMemo(() => {
-        return ALL_COMPONENTS.filter(c => c.category === selectedCategory);
-    }, [selectedCategory]);
+        return availableComponents.filter(c => c.category === selectedCategory);
+    }, [selectedCategory, availableComponents]);
 
     const addComponent = useCallback((componentType: ComponentType) => {
         const definition = getComponentDefinition(componentType);

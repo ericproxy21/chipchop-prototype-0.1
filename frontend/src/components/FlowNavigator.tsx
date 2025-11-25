@@ -5,10 +5,26 @@ interface FlowNavigatorProps {
     onViewReports?: (type: 'synthesis' | 'implementation' | 'bitstream') => void;
     onRunProcess?: (type: 'synthesis' | 'implementation' | 'bitstream') => void;
     onViewSchematic?: () => void;
+    onViewArchitecture?: () => void;
+    onViewMicroarchitecture?: () => void;
 }
 
-export const FlowNavigator = ({ onCloudConnect, onViewReports, onRunProcess, onViewSchematic }: FlowNavigatorProps) => {
+export const FlowNavigator = ({
+    onCloudConnect,
+    onViewReports,
+    onRunProcess,
+    onViewSchematic,
+    onViewArchitecture,
+    onViewMicroarchitecture
+}: FlowNavigatorProps) => {
     const sections = [
+        {
+            title: 'DESIGN SPECIFICATIONS',
+            items: [
+                { name: 'Architecture', icon: FileText, onClick: onViewArchitecture },
+                { name: 'Microarchitecture', icon: Activity, onClick: onViewMicroarchitecture },
+            ]
+        },
         {
             title: 'PROJECT MANAGER',
             items: [

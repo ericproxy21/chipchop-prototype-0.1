@@ -15,6 +15,10 @@ export type ComponentType =
     | 'REGISTER' | 'COUNTER'
     // I/O
     | 'INPUT' | 'OUTPUT'
+    // CPU Microarchitecture
+    | 'CPU_PC' | 'CPU_BRANCH_LOGIC' | 'CPU_INSTRUCTION_MEMORY' | 'CPU_REGISTER_FILE'
+    | 'CPU_ALU' | 'CPU_CONTROL_UNIT' | 'CPU_DATA_MEMORY' | 'CPU_PIPELINE_REGISTER'
+    | 'CPU_MULTIPLIER' | 'CPU_HAZARD_LOGIC' | 'CPU_PREDICTOR' | 'CPU_BUS' | 'CPU_PERIPHERAL'
     // Custom
     | 'CUSTOM';
 
@@ -161,7 +165,7 @@ export interface GeneratedCode {
 export interface ComponentDefinition {
     type: ComponentType;
     label: string;
-    category: 'logic' | 'sequential' | 'arithmetic' | 'mux' | 'register' | 'io';
+    category: 'logic' | 'sequential' | 'arithmetic' | 'mux' | 'register' | 'io' | 'cpu_core' | 'cpu_memory' | 'cpu_control' | 'cpu_optional';
     icon: string; // SVG path or component
     defaultPorts: Omit<SchematicPort, 'id' | 'position'>[];
     properties?: {

@@ -15,6 +15,7 @@ interface ProjectSettingsModalProps {
     onClose: () => void;
     projectId: string;
     projectName: string;
+    architecture?: string;
     members: Member[];
     onMembersUpdate: (members: Member[]) => void;
 }
@@ -24,6 +25,7 @@ export const ProjectSettingsModal = ({
     onClose,
     projectId: _projectId,
     projectName,
+    architecture,
     members,
     onMembersUpdate
 }: ProjectSettingsModalProps) => {
@@ -107,6 +109,34 @@ export const ProjectSettingsModal = ({
                 {/* Content */}
                 <div className="flex-1 overflow-y-auto p-6">
                     <div className="space-y-6">
+                        {/* General Settings Section */}
+                        <div>
+                            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                                <SettingsIcon size={18} className="text-vivado-accent" />
+                                General
+                            </h3>
+                            <div className="bg-vivado-bg border border-vivado-border rounded p-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1 text-gray-400">
+                                            Target Architecture
+                                        </label>
+                                        <div className="text-vivado-text font-medium">
+                                            {architecture || 'Not specified'}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1 text-gray-400">
+                                            Project ID
+                                        </label>
+                                        <div className="text-vivado-text font-mono text-sm">
+                                            {_projectId}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         {/* Add Member Section */}
                         <div>
                             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">

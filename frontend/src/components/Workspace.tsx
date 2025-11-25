@@ -10,6 +10,7 @@ import { CloudConnectModal } from './CloudConnectModal';
 import { ReportsModal } from './ReportsModal';
 import { RunProgressModal } from './RunProgressModal';
 import { SchematicEditor } from './SchematicModal';
+import { ArchitectureEditor } from './ArchitectureEditor';
 import { Copilot } from './Copilot';
 import { DesignNavigator } from './DesignNavigator';
 import { PanelRight } from 'lucide-react';
@@ -23,6 +24,8 @@ export const Workspace = () => {
     const [showReportsModal, setShowReportsModal] = useState(false);
     const [showRunModal, setShowRunModal] = useState(false);
     const [showSchematicModal, setShowSchematicModal] = useState(false);
+    const [showArchitectureModal, setShowArchitectureModal] = useState(false);
+    const [showMicroarchitectureModal, setShowMicroarchitectureModal] = useState(false);
     const [reportType, setReportType] = useState<'synthesis' | 'implementation' | 'bitstream'>('synthesis');
     const [runType, setRunType] = useState<'synthesis' | 'implementation' | 'bitstream'>('synthesis');
     const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -49,6 +52,8 @@ export const Workspace = () => {
                     onViewReports={handleViewReports}
                     onRunProcess={handleRunProcess}
                     onViewSchematic={() => setShowSchematicModal(true)}
+                    onViewArchitecture={() => setShowArchitectureModal(true)}
+                    onViewMicroarchitecture={() => setShowMicroarchitectureModal(true)}
                 />
             </div>
 
@@ -107,48 +112,45 @@ export const Workspace = () => {
                                     : 'border-transparent text-gray-400 hover:text-white'
                                     }`}
                             >
-                                Schematic View
+                                Schematic
                             </button>
                         </div>
 
-                        <div className="flex-1 relative">
+                        {/* Content */}
+                        <div className="flex-1 overflow-hidden relative">
                             {activeTab === 'source' && (
-                                activeFile ? (
-                                    <Editor fileId={activeFile} />
-                                ) : (
-                                    <div className="absolute inset-0 flex items-center justify-center text-gray-500">
-                                        Select a file to view
-                                    </div>
-                                )
+                                <Editor
+                                    fileId={activeFile || ''}
+                                />
                             )}
-
                             {activeTab === 'design' && (
-                                <DesignNavigator projectName={projectId || 'project'} />
-                            )}
-
-                            {activeTab === 'schematic' && (
-                                <div className="absolute inset-0 flex items-center justify-center text-gray-500">
-                                    <button
-                                        onClick={() => setShowSchematicModal(true)}
-                                        className="bg-vivado-accent hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium"
-                                    >
-                                        Open Schematic Viewer
-                                    </button>
+                                <div className="h-full overflow-auto p-4">
+                                    <DesignNavigator projectName={projectId || 'project'} />
                                 </div>
                             )}
-                        </div>
-
-                        {/* Bottom Panel - Tcl Console / Messages */}
-                        <div className="h-48 border-t border-vivado-border bg-vivado-panel flex flex-col">
-                            <TclConsole projectId={projectId} />
+                            {activeTab === 'schematic' && (
+                                <div className="h-full flex items-center justify-center text-gray-500">
+                                    Select a module to view schematic or use the Flow Navigator
+                                </div>
+                            )}
                         </div>
                     </div>
 
                     {/* Right Sidebar - Copilot */}
-                    {showCopilot && <Copilot onClose={() => setShowCopilot(false)} />}
+                    {showCopilot && (
+                        <div className="w-80 border-l border-vivado-border bg-vivado-panel flex flex-col">
+                            <Copilot onClose={() => setShowCopilot(false)} />
+                        </div>
+                    )}
+                </div>
+
+                {/* Bottom Panel - Tcl Console */}
+                <div className="h-48 border-t border-vivado-border bg-vivado-panel">
+                    <TclConsole projectId={projectId} />
                 </div>
             </div>
 
+            {/* Modals */}
             <CloudConnectModal
                 isOpen={showCloudModal}
                 onClose={() => setShowCloudModal(false)}
@@ -170,6 +172,19 @@ export const Workspace = () => {
             <SchematicEditor
                 isOpen={showSchematicModal}
                 onClose={() => setShowSchematicModal(false)}
+                designName="Project Schematic"
+            />
+
+            <ArchitectureEditor
+                isOpen={showArchitectureModal}
+                onClose={() => setShowArchitectureModal(false)}
+            />
+
+            <SchematicEditor
+                isOpen={showMicroarchitectureModal}
+                onClose={() => setShowMicroarchitectureModal(false)}
+                designName="Microarchitecture"
+                mode="microarchitecture"
             />
         </div>
     );

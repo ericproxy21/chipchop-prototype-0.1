@@ -182,12 +182,15 @@ export const IO_COMPONENTS: ComponentDefinition[] = [
     },
 ];
 
+import { MICROARCHITECTURE_COMPONENTS } from './MicroarchitectureComponents';
+
 export const ALL_COMPONENTS: ComponentDefinition[] = [
     ...LOGIC_GATES,
     ...SEQUENTIAL_ELEMENTS,
     ...ARITHMETIC_COMPONENTS,
     ...MULTIPLEXERS,
     ...IO_COMPONENTS,
+    ...MICROARCHITECTURE_COMPONENTS,
 ];
 
 export const getComponentDefinition = (type: ComponentType): ComponentDefinition | undefined => {

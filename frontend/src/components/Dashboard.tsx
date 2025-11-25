@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Folder, GitBranch, Clock, Settings, Users } from 'lucide-react';
 import { ProjectSettingsModal } from './ProjectSettingsModal';
+import { ProjectLandingPage } from './ProjectLandingPage';
 
 interface Member {
     id: string;
@@ -16,6 +17,7 @@ interface Project {
     id: string;
     name: string;
     description?: string;
+    architecture?: string;
     path: string;
     created_at: string;
     last_modified: string;
@@ -26,9 +28,7 @@ export const Dashboard = () => {
     const navigate = useNavigate();
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     const [projects, setProjects] = useState<Project[]>([]);
-    const [showNewProjectModal, setShowNewProjectModal] = useState(false);
-    const [newProjectName, setNewProjectName] = useState('');
-    const [newProjectDescription, setNewProjectDescription] = useState('');
+    const [showLandingPage, setShowLandingPage] = useState(false);
     const [showSettingsModal, setShowSettingsModal] = useState(false);
     const [selectedProject, setSelectedProject] = useState<Project | null>(null);
 
@@ -57,23 +57,49 @@ export const Dashboard = () => {
         }
     };
 
-    const handleCreateProject = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleCreateProject = async (type: 'blank' | 'template' | 'clone', data?: any) => {
         try {
+            let projectName = '';
+            let description = '';
+            let architecture = 'zynq-7000';
+
+            if (type === 'blank' || type === 'template') {
+                if (data) {
+                    projectName = data.name;
+                    description = data.description;
+                    architecture = data.architecture;
+                } else {
+                    // Fallback
+                    projectName = prompt('Enter project name:') || '';
+                    if (!projectName) return;
+                }
+
+                if (type === 'template' && !description) {
+                    description = 'Created from template with sample Verilog files';
+                }
+            } else if (type === 'clone' && data?.repoUrl) {
+                const repoName = data.repoUrl.split('/').pop()?.replace('.git', '') || 'cloned-project';
+                projectName = repoName;
+                description = `Cloned from ${data.repoUrl}`;
+            }
+
             const response = await fetch('http://localhost:8000/api/projects/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    name: newProjectName,
-                    description: newProjectDescription
+                    name: projectName,
+                    description: description,
+                    architecture: architecture,
+                    type: type,
+                    ...(type === 'clone' && { repoUrl: data?.repoUrl })
                 }),
             });
 
             if (response.ok) {
-                setShowNewProjectModal(false);
-                setNewProjectName('');
-                setNewProjectDescription('');
+                const newProject = await response.json();
+                setShowLandingPage(false);
                 fetchProjects();
+                navigate(`/workspace/${newProject.id}`);
             }
         } catch (error) {
             console.error('Failed to create project', error);
@@ -107,7 +133,7 @@ export const Dashboard = () => {
                 </div>
                 <div className="flex items-center gap-4">
                     <button
-                        onClick={() => setShowNewProjectModal(true)}
+                        onClick={() => setShowLandingPage(true)}
                         className="bg-vivado-accent hover:bg-blue-600 text-white px-4 py-2 rounded flex items-center gap-2 transition-colors"
                     >
                         <Plus size={18} /> New Project
@@ -191,62 +217,30 @@ export const Dashboard = () => {
                 )}
             </div>
 
-            {showNewProjectModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
-                    <div className="bg-vivado-panel p-6 rounded-lg border border-vivado-border w-96 shadow-xl">
-                        <h2 className="text-xl font-bold mb-4">Create New Project</h2>
-                        <form onSubmit={handleCreateProject}>
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium mb-1 text-gray-400">Project Name</label>
-                                <input
-                                    type="text"
-                                    value={newProjectName}
-                                    onChange={(e) => setNewProjectName(e.target.value)}
-                                    className="w-full bg-vivado-bg border border-vivado-border rounded p-2 text-vivado-text focus:outline-none focus:border-vivado-accent"
-                                    required
-                                    autoFocus
-                                />
-                            </div>
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium mb-1 text-gray-400">Description (Optional)</label>
-                                <textarea
-                                    value={newProjectDescription}
-                                    onChange={(e) => setNewProjectDescription(e.target.value)}
-                                    className="w-full bg-vivado-bg border border-vivado-border rounded p-2 text-vivado-text focus:outline-none focus:border-vivado-accent resize-none"
-                                    rows={3}
-                                    placeholder="Enter a brief description of your project..."
-                                />
-                            </div>
-                            <div className="flex justify-end gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowNewProjectModal(false)}
-                                    className="px-4 py-2 rounded hover:bg-vivado-border transition-colors"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="bg-vivado-accent hover:bg-blue-600 text-white px-4 py-2 rounded transition-colors"
-                                >
-                                    Create
-                                </button>
-                            </div>
-                        </form>
-                    </div>
+
+
+            {showLandingPage && (
+                <div className="fixed inset-0 z-50">
+                    <ProjectLandingPage
+                        onCreateProject={handleCreateProject}
+                        onClose={() => setShowLandingPage(false)}
+                    />
                 </div>
             )}
 
-            {showSettingsModal && selectedProject && (
-                <ProjectSettingsModal
-                    isOpen={showSettingsModal}
-                    onClose={() => setShowSettingsModal(false)}
-                    projectId={selectedProject.id}
-                    projectName={selectedProject.name}
-                    members={selectedProject.members}
-                    onMembersUpdate={(members) => handleMembersUpdate(selectedProject.id, members)}
-                />
-            )}
-        </div>
+            {
+                showSettingsModal && selectedProject && (
+                    <ProjectSettingsModal
+                        isOpen={showSettingsModal}
+                        onClose={() => setShowSettingsModal(false)}
+                        projectId={selectedProject.id}
+                        projectName={selectedProject.name}
+                        architecture={selectedProject.architecture}
+                        members={selectedProject.members}
+                        onMembersUpdate={(members) => handleMembersUpdate(selectedProject.id, members)}
+                    />
+                )
+            }
+        </div >
     );
 };
