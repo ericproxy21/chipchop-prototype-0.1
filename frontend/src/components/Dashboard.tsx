@@ -27,7 +27,6 @@ interface Project {
 
 export const Dashboard = () => {
     const navigate = useNavigate();
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
     const [projects, setProjects] = useState<Project[]>([]);
     const [showLandingPage, setShowLandingPage] = useState(false);
     const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -179,7 +178,7 @@ export const Dashboard = () => {
                         <div className="w-8 h-8 bg-vivado-accent rounded flex items-center justify-center text-white font-bold">
                             CC
                         </div>
-                        ChipChop
+                        Chipchop
                     </h1>
                     <div className="flex items-center gap-4">
                         <div className="relative">

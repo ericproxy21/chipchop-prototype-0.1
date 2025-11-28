@@ -7,7 +7,7 @@ interface TclConsoleProps {
 export const TclConsole = ({ projectId }: TclConsoleProps) => {
     const [input, setInput] = useState('');
     const [history, setHistory] = useState<string[]>([
-        '# ChipChop v0.1 (64-bit)',
+        '# Chipchop v0.1 (64-bit)',
         '# Prototype Build on Fri Nov 22 2024',
         `# Current project: ${projectId || 'None'}`,
     ]);

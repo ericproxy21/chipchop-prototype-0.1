@@ -8,6 +8,8 @@ import {
     useEdgesState,
     addEdge,
     Panel,
+    Handle,
+    Position,
     type Node,
     type Connection,
 } from '@xyflow/react';
@@ -32,15 +34,136 @@ const SchematicNode = ({ data }: { data: any }) => {
     const { type, label } = data;
 
     return (
-        <div className="bg-gray-700 border-2 border-blue-400 rounded px-4 py-2 min-w-[80px] text-center">
+        <div className="bg-gray-700 border-2 border-blue-400 rounded px-4 py-2 min-w-[80px] text-center relative">
+            <Handle type="target" position={Position.Left} className="w-2 h-2 !bg-blue-400" />
             <div className="text-xs text-gray-400 mb-1">{type}</div>
             <div className="text-white font-semibold text-sm">{label}</div>
+            <Handle type="source" position={Position.Right} className="w-2 h-2 !bg-blue-400" />
+        </div>
+    );
+};
+
+// Custom node for Microarchitecture components with specific shapes and ports
+const MicroarchNode = ({ data }: { data: any }) => {
+    const { type, label, ports = [] } = data;
+
+    // Helper to get shape classes based on type
+    const getShapeClasses = () => {
+        if (type === 'CPU_ALU') {
+            return 'clip-path-trapezoid bg-purple-900/50 border-purple-500';
+        }
+        if (type === 'CPU_MUX') {
+            return 'clip-path-trapezoid bg-blue-900/50 border-blue-500';
+        }
+        if (type === 'CPU_REGISTER_FILE') {
+            return 'bg-green-900/50 border-green-500 rounded-lg';
+        }
+        if (type === 'CPU_CONTROL_UNIT') {
+            return 'bg-red-900/50 border-red-500 rounded-full';
+        }
+        return 'bg-gray-800 border-gray-500 rounded';
+    };
+
+    // Render ALU Shape (Trapezoid)
+    if (type === 'CPU_ALU') {
+        return (
+            <div className="relative w-32 h-32 flex items-center justify-center">
+                {/* SVG Trapezoid for ALU */}
+                <svg className="absolute inset-0 w-full h-full overflow-visible" viewBox="0 0 100 100">
+                    <path d="M 0 0 L 100 20 L 100 80 L 0 100 Z" fill="#581c87" stroke="#a855f7" strokeWidth="2" />
+                    <text x="50" y="50" textAnchor="middle" fill="white" fontSize="12" fontWeight="bold">ALU</text>
+                </svg>
+
+                {/* Ports */}
+                {ports.map((port: any, index: number) => {
+                    const isInput = port.type === 'input';
+                    // Custom positioning for ALU ports
+                    let top = 0;
+                    if (port.name === 'a') top = 20;
+                    if (port.name === 'b') top = 80;
+                    if (port.name === 'result') top = 50;
+                    if (port.name === 'zero') top = 70;
+                    if (port.name === 'op') top = 10; // Control signal usually on top/bottom, putting on side for now or top
+
+                    // Adjust for side
+                    const style: React.CSSProperties = {
+                        position: 'absolute',
+                        top: `${top}%`,
+                        [isInput ? 'left' : 'right']: -4,
+                    };
+
+                    // Special case for 'op' if we want it on top
+                    if (port.name === 'op') {
+                        style.top = '10%';
+                        style.left = '50%';
+                    }
+
+                    return (
+                        <div key={port.name} style={style} className="flex items-center absolute w-full h-full pointer-events-none">
+                            <Handle
+                                id={port.name}
+                                type={isInput ? 'target' : 'source'}
+                                position={isInput ? Position.Left : Position.Right}
+                                className={`w-2 h-2 !bg-gray-200 pointer-events-auto ${port.name === 'op' ? '!top-0 !left-1/2 -translate-x-1/2' : ''}`}
+                            />
+                            <span className={`absolute text-[8px] text-gray-300 ${isInput ? 'left-3' : 'right-3'}`}>
+                                {port.name}
+                            </span>
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    }
+
+    // Default Rectangular Node with named ports
+    return (
+        <div className={`border-2 px-4 py-4 min-w-[120px] min-h-[80px] relative flex flex-col justify-center items-center ${getShapeClasses()}`}>
+            <div className="text-white font-bold text-sm mb-2">{label}</div>
+
+            {/* Render Ports */}
+            {ports.map((port: any, index: number) => {
+                const isInput = port.type === 'input';
+                // Distribute ports evenly
+                const inputPorts = ports.filter((p: any) => p.type === 'input');
+                const outputPorts = ports.filter((p: any) => p.type === 'output');
+
+                const portIndex = isInput
+                    ? inputPorts.findIndex((p: any) => p.name === port.name)
+                    : outputPorts.findIndex((p: any) => p.name === port.name);
+
+                const totalSidePorts = isInput ? inputPorts.length : outputPorts.length;
+                const topPos = ((portIndex + 1) / (totalSidePorts + 1)) * 100;
+
+                return (
+                    <div
+                        key={port.name}
+                        className="absolute w-full"
+                        style={{ top: `${topPos}%`, left: 0, pointerEvents: 'none' }}
+                    >
+                        <Handle
+                            id={port.name}
+                            type={isInput ? 'target' : 'source'}
+                            position={isInput ? Position.Left : Position.Right}
+                            className={`w-2 h-2 !bg-gray-200 pointer-events-auto ${isInput ? '-ml-1' : '-mr-1'}`}
+                            style={{ [isInput ? 'left' : 'right']: 0 }}
+                        />
+                        <span
+                            className={`absolute text-[10px] text-gray-300 ${isInput ? 'left-2' : 'right-2'}`}
+                            style={{ [isInput ? 'left' : 'right']: '8px', transform: 'translateY(-50%)' }}
+                        >
+                            {port.name}
+                        </span>
+                    </div>
+                );
+            })}
         </div>
     );
 };
 
 const nodeTypes = {
     schematicComponent: SchematicNode,
+    microarchComponent: MicroarchNode,
 };
 
 export const SchematicEditor = ({ isOpen, onClose, designName = 'untitled', onSave, mode = 'schematic' }: SchematicEditorProps) => {
@@ -51,7 +174,7 @@ export const SchematicEditor = ({ isOpen, onClose, designName = 'untitled', onSa
     const [generatedCode, setGeneratedCode] = useState('');
 
     const onConnect = useCallback(
-        (params: Connection) => setEdges((eds) => addEdge(params, eds)),
+        (params: Connection) => setEdges((eds) => addEdge({ ...params, animated: true, style: { stroke: '#60a5fa', strokeWidth: 2 } }, eds)),
         [setEdges]
     );
 
@@ -78,22 +201,25 @@ export const SchematicEditor = ({ isOpen, onClose, designName = 'untitled', onSa
     }, [selectedCategory, availableComponents]);
 
     const addComponent = useCallback((componentType: ComponentType) => {
-        const definition = getComponentDefinition(componentType);
+        const definition = mode === 'microarchitecture'
+            ? MICROARCHITECTURE_COMPONENTS.find(c => c.type === componentType)
+            : getComponentDefinition(componentType);
+
         if (!definition) return;
 
         const newNode: Node = {
             id: `${componentType}-${Date.now()}`,
-            type: 'schematicComponent',
+            type: mode === 'microarchitecture' ? 'microarchComponent' : 'schematicComponent',
             position: { x: 250, y: 100 + nodes.length * 80 },
             data: {
                 type: componentType,
                 label: definition.label,
-                ports: definition.defaultPorts,
+                ports: definition.defaultPorts || [], // Ensure ports are passed
             },
         };
 
         setNodes((nds) => [...nds, newNode]);
-    }, [nodes.length, setNodes]);
+    }, [nodes.length, setNodes, mode]);
 
     const clearCanvas = useCallback(() => {
         if (confirm('Clear all components? This cannot be undone.')) {
@@ -187,7 +313,9 @@ export const SchematicEditor = ({ isOpen, onClose, designName = 'untitled', onSa
             <div className="bg-vivado-panel border border-vivado-border rounded-lg w-[95vw] h-[90vh] flex flex-col shadow-2xl">
                 {/* Header */}
                 <div className="flex justify-between items-center p-4 border-b border-vivado-border">
-                    <h2 className="text-xl font-bold text-vivado-text">Schematic Editor - {designName}</h2>
+                    <h2 className="text-xl font-bold text-vivado-text">
+                        {mode === 'microarchitecture' ? 'Microarchitecture Editor' : 'Schematic Editor'} - {designName}
+                    </h2>
                     <div className="flex items-center gap-2">
                         <button
                             onClick={handleSave}

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Sparkles, X, ArrowRight, SkipForward } from 'lucide-react';
+import { Sparkles, X, SkipForward } from 'lucide-react';
 
 interface ScaffoldModalProps {
     isOpen: boolean;
@@ -23,7 +23,7 @@ export const ScaffoldModal = ({ isOpen, onClose, onConfirm, onSkip }: ScaffoldMo
                             <Sparkles className="text-yellow-400" size={24} />
                             AI Project Scaffolding
                         </h2>
-                        <p className="text-sm text-gray-400 mt-1">Kickstart your project with ChipChop AI</p>
+                        <p className="text-sm text-gray-400 mt-1">Kickstart your project with Chipchop AI</p>
                     </div>
                     <button
                         onClick={onClose}

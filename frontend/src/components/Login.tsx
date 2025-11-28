@@ -30,7 +30,7 @@ export const Login = () => {
     return (
         <div className="min-h-screen flex items-center justify-center bg-vivado-bg">
             <div className="bg-vivado-panel p-8 rounded-lg shadow-lg border border-vivado-border w-96">
-                <h1 className="text-2xl font-bold mb-6 text-vivado-text text-center">ChipChop Prototype 0.1</h1>
+                <h1 className="text-2xl font-bold mb-6 text-vivado-text text-center">Chipchop Prototype 0.1</h1>
                 {error && <div className="bg-red-900/50 text-red-200 p-2 rounded mb-4 text-sm">{error}</div>}
                 <form onSubmit={handleLogin} className="space-y-4">
                     <div>

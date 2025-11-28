@@ -46,7 +46,7 @@ export const ProjectLandingPage = ({ onCreateProject, onClose: _onClose }: Proje
                             </svg>
                         </div>
                     </div>
-                    <h1 className="text-4xl font-light text-gray-200 tracking-wide">ChipChop</h1>
+                    <h1 className="text-4xl font-light text-gray-200 tracking-wide">Chipchop</h1>
                 </div>
 
                 {/* Main Action Buttons */}
