@@ -171,36 +171,36 @@ async def create_project(request: CreateProjectRequest):
 class FileUpdate(BaseModel):
     content: str
 
-@router.get("/{project_id}/files/{filename}")
-async def get_project_file(project_id: str, filename: str):
+@router.get("/{project_id}/files/{file_path:path}")
+async def get_project_file(project_id: str, file_path: str):
     project_path = os.path.join(PROJECTS_DIR, project_id)
-    file_path = os.path.join(project_path, filename)
+    full_file_path = os.path.join(project_path, file_path)
     
     if not os.path.exists(project_path):
         raise HTTPException(status_code=404, detail="Project not found")
         
-    if not os.path.exists(file_path):
+    if not os.path.exists(full_file_path):
         # Return empty content for non-existent files instead of 404
         # This allows editors to start empty if file doesn't exist yet
         return {"content": ""}
         
     try:
-        with open(file_path, "r") as f:
+        with open(full_file_path, "r") as f:
             content = f.read()
         return {"content": content}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.put("/{project_id}/files/{filename}")
-async def update_project_file(project_id: str, filename: str, update: FileUpdate):
+@router.put("/{project_id}/files/{file_path:path}")
+async def update_project_file(project_id: str, file_path: str, update: FileUpdate):
     project_path = os.path.join(PROJECTS_DIR, project_id)
-    file_path = os.path.join(project_path, filename)
+    full_file_path = os.path.join(project_path, file_path)
     
     if not os.path.exists(project_path):
         raise HTTPException(status_code=404, detail="Project not found")
         
     try:
-        with open(file_path, "w") as f:
+        with open(full_file_path, "w") as f:
             f.write(update.content)
         return {"status": "success"}
     except Exception as e:

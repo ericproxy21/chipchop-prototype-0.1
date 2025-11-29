@@ -20,25 +20,11 @@ export const Editor = ({ fileId, projectId }: EditorProps) => {
     const fetchFileContent = async () => {
         setIsLoading(true);
         try {
-            // Encode fileId to handle slashes in path
-            // const encodedFileId = encodeURIComponent(fileId);
-            // But wait, the backend expects the filename directly. 
-            // If fileId is "rtl/gcd_accelerator.v", backend joins it with project path.
-            // Let's check backend: os.path.join(project_path, filename)
-            // So "rtl/gcd_accelerator.v" works if we pass it as is? 
-            // FastAPI might decode the URL param.
-            // Ideally we should pass it as a query param or handle slashes.
-            // But let's try passing it directly first, assuming backend handles it or we use a different endpoint structure.
-            // Actually, "files/{filename}" where filename contains slashes might be tricky in some routers.
-            // Let's assume for now we can pass it. If not, we might need to adjust backend.
-            // Wait, standard URL encoding should work if backend decodes it.
+            // Use fileId directly as path parameter (backend uses :path converter)
+            // We split by / and encode each segment to be safe
+            const safePath = fileId.split('/').map(encodeURIComponent).join('/');
 
-            // Actually, let's look at backend: @router.get("/{project_id}/files/{filename}")
-            // If filename has slashes, it might not match.
-            // We should check if we need to use a catch-all path or query param.
-            // For now, let's try encoded.
-
-            const response = await fetch(`http://localhost:8000/api/projects/${projectId}/files/${encodeURIComponent(fileId)}`);
+            const response = await fetch(`http://localhost:8000/api/projects/${projectId}/files/${safePath}`);
             if (response.ok) {
                 const data = await response.json();
                 setContent(data.content || '');
@@ -57,7 +43,8 @@ export const Editor = ({ fileId, projectId }: EditorProps) => {
         if (!projectId || !fileId) return;
 
         try {
-            const response = await fetch(`http://localhost:8000/api/projects/${projectId}/files/${encodeURIComponent(fileId)}`, {
+            const safePath = fileId.split('/').map(encodeURIComponent).join('/');
+            const response = await fetch(`http://localhost:8000/api/projects/${projectId}/files/${safePath}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ content }),
