@@ -1,16 +1,33 @@
 import { FileCode, Folder } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface SourceViewProps {
     onFileSelect: (file: string) => void;
+    projectId?: string;
 }
 
-export const SourceView = ({ onFileSelect }: SourceViewProps) => {
-    // Mock data for now
-    const files = [
-        { name: 'top.v', type: 'verilog' },
-        { name: 'alu.v', type: 'verilog' },
-        { name: 'constraints.xdc', type: 'xdc' },
-    ];
+interface FileItem {
+    name: string;
+    type: string;
+    path: string;
+}
+
+export const SourceView = ({ onFileSelect, projectId }: SourceViewProps) => {
+    const [files, setFiles] = useState<FileItem[]>([
+        { name: 'gcd_accelerator.v', type: 'verilog', path: 'rtl/gcd_accelerator.v' },
+        { name: 'constraints.xdc', type: 'xdc', path: 'constraints.xdc' },
+    ]);
+
+    useEffect(() => {
+        if (projectId) {
+            // TODO: Fetch actual files from backend
+            // For now, use default GCD accelerator files
+            setFiles([
+                { name: 'gcd_accelerator.v', type: 'verilog', path: 'rtl/gcd_accelerator.v' },
+                { name: 'constraints.xdc', type: 'xdc', path: 'constraints.xdc' },
+            ]);
+        }
+    }, [projectId]);
 
     return (
         <div className="flex-1 overflow-y-auto p-2">
@@ -22,7 +39,7 @@ export const SourceView = ({ onFileSelect }: SourceViewProps) => {
                 {files.map((file) => (
                     <div
                         key={file.name}
-                        onClick={() => onFileSelect(file.name)}
+                        onClick={() => onFileSelect(file.path)}
                         className="flex items-center gap-2 px-2 py-1 hover:bg-vivado-border cursor-pointer rounded text-sm"
                     >
                         <FileCode size={14} className="text-blue-400" />

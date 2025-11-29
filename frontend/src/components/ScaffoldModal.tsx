@@ -8,7 +8,7 @@ interface ScaffoldModalProps {
     onSkip: () => void;
 }
 
-export const ScaffoldModal = ({ isOpen, onClose, onConfirm, onSkip }: ScaffoldModalProps) => {
+export const ScaffoldModal = ({ isOpen, onClose, onConfirm, onSkip, onDemo }: ScaffoldModalProps & { onDemo: () => void }) => {
     const [specs, setSpecs] = useState('');
 
     if (!isOpen) return null;
@@ -60,6 +60,13 @@ export const ScaffoldModal = ({ isOpen, onClose, onConfirm, onSkip }: ScaffoldMo
                     >
                         <SkipForward size={16} />
                         No, create empty project
+                    </button>
+                    <button
+                        onClick={onDemo}
+                        className="px-4 py-2 text-vivado-accent hover:text-blue-400 hover:bg-blue-900/20 rounded transition-colors flex items-center gap-2 font-medium border border-transparent hover:border-blue-900/30"
+                    >
+                        <Sparkles size={16} className="text-yellow-400" />
+                        Demo Scaffold
                     </button>
                     <button
                         onClick={() => onConfirm(specs)}

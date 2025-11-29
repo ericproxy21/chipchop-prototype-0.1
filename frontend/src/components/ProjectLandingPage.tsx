@@ -37,13 +37,7 @@ export const ProjectLandingPage = ({ onCreateProject, onClose: _onClose }: Proje
                 <div className="text-center mb-12">
                     <div className="mb-6 flex justify-center">
                         <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center">
-                            <svg viewBox="0 0 100 100" className="w-16 h-16">
-                                <path
-                                    d="M50 20 L30 50 L50 50 L50 80 L70 50 L50 50 Z"
-                                    fill="#1e293b"
-                                    transform="rotate(180 50 50)"
-                                />
-                            </svg>
+                            <img src="/src/assets/chipchop_logo.jpg" alt="ChipChop Logo" className="w-16 h-16 object-contain" />
                         </div>
                     </div>
                     <h1 className="text-4xl font-light text-gray-200 tracking-wide">Chipchop</h1>

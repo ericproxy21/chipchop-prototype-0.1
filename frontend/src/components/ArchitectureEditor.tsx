@@ -6,24 +6,63 @@ interface ArchitectureEditorProps {
     onClose: () => void;
     initialContent?: string;
     onSave?: (content: string) => void;
+    projectId?: string;
 }
 
-export const ArchitectureEditor = ({ isOpen, onClose, initialContent = '', onSave }: ArchitectureEditorProps) => {
+export const ArchitectureEditor = ({ isOpen, onClose, initialContent = '', onSave, projectId }: ArchitectureEditorProps) => {
     const [content, setContent] = useState(initialContent);
 
     useEffect(() => {
-        setContent(initialContent);
-    }, [initialContent]);
+        if (isOpen && projectId) {
+            fetchArchitecture();
+        } else {
+            setContent(initialContent);
+        }
+    }, [isOpen, projectId, initialContent]);
+
+    const fetchArchitecture = async () => {
+        try {
+            const response = await fetch(`http://localhost:8000/api/projects/${projectId}/files/architecture.md`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.content) {
+                    setContent(data.content);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to fetch architecture', error);
+        }
+    };
 
     if (!isOpen) return null;
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (onSave) {
             onSave(content);
         }
-        // In a real app, this would save to the backend
-        localStorage.setItem('project_architecture_specs', content);
-        alert('Architecture specifications saved!');
+
+        if (projectId) {
+            try {
+                const response = await fetch(`http://localhost:8000/api/projects/${projectId}/files/architecture.md`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content }),
+                });
+
+                if (response.ok) {
+                    alert('Architecture specifications saved!');
+                } else {
+                    alert('Failed to save architecture specifications.');
+                }
+            } catch (error) {
+                console.error('Failed to save architecture', error);
+                alert('Failed to save architecture specifications.');
+            }
+        } else {
+            // Fallback for demo/testing without backend
+            localStorage.setItem('project_architecture_specs', content);
+            alert('Architecture specifications saved (local)!');
+        }
     };
 
     return (

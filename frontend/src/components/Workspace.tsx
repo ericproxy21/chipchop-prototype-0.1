@@ -62,7 +62,7 @@ export const Workspace = () => {
                 <div className="p-2 border-b border-vivado-border font-semibold text-sm">
                     Sources
                 </div>
-                <SourceView onFileSelect={setActiveFile} />
+                <SourceView onFileSelect={setActiveFile} projectId={projectId} />
             </div>
 
             {/* Main Content Area */}
@@ -121,6 +121,7 @@ export const Workspace = () => {
                             {activeTab === 'source' && (
                                 <Editor
                                     fileId={activeFile || ''}
+                                    projectId={projectId || ''}
                                 />
                             )}
                             {activeTab === 'design' && (
@@ -173,11 +174,13 @@ export const Workspace = () => {
                 isOpen={showSchematicModal}
                 onClose={() => setShowSchematicModal(false)}
                 designName="Project Schematic"
+                projectId={projectId}
             />
 
             <ArchitectureEditor
                 isOpen={showArchitectureModal}
                 onClose={() => setShowArchitectureModal(false)}
+                projectId={projectId}
             />
 
             <SchematicEditor
@@ -185,6 +188,7 @@ export const Workspace = () => {
                 onClose={() => setShowMicroarchitectureModal(false)}
                 designName="Microarchitecture"
                 mode="microarchitecture"
+                projectId={projectId}
             />
         </div>
     );

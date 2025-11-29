@@ -4,6 +4,7 @@ import { Plus, Folder, Clock, Settings, LogOut, Search, Users } from 'lucide-rea
 import { ProjectLandingPage } from './ProjectLandingPage';
 import { ProjectSettingsModal } from './ProjectSettingsModal';
 import { ScaffoldModal } from './ScaffoldModal';
+import { exampleProjectData } from '../data/exampleProject';
 
 interface Member {
     id: string;
@@ -133,7 +134,23 @@ export const Dashboard = () => {
                 ...pendingProjectData,
                 type: 'blank',
                 scaffold: true,
-                scaffoldSpecs: specs
+                scaffoldSpecs: specs,
+                // In a real AI flow, these would be generated based on specs
+                // For now we just pass the specs to the backend or handle it there
+            });
+        }
+    };
+
+    const handleDemoScaffold = () => {
+        if (pendingProjectData) {
+            finalizeCreateProject({
+                ...pendingProjectData,
+                type: 'blank',
+                scaffold: true,
+                scaffoldSpecs: "Demo GCD Project",
+                architecture_content: exampleProjectData.architectureContent,
+                microarchitecture_content: exampleProjectData.microarchitectureContent,
+                rtl_content: exampleProjectData.rtlContent
             });
         }
     };
@@ -209,7 +226,7 @@ export const Dashboard = () => {
                     {projects.map((project) => (
                         <div
                             key={project.id}
-                            onClick={() => navigate(`/workspace/${project.id}`)}
+                            onClick={() => navigate(`/ workspace / ${project.id} `)}
                             className="bg-vivado-panel border border-vivado-border rounded-lg p-6 hover:border-vivado-accent cursor-pointer transition-all hover:shadow-lg group"
                         >
                             <div className="flex justify-between items-start mb-4">
@@ -300,6 +317,7 @@ export const Dashboard = () => {
                     onClose={() => setShowScaffoldModal(false)}
                     onConfirm={handleScaffoldConfirm}
                     onSkip={handleScaffoldSkip}
+                    onDemo={handleDemoScaffold}
                 />
             </div>
         </div>

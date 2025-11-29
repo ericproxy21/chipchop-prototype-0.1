@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import {
     ReactFlow,
     Controls,
@@ -27,6 +27,7 @@ interface SchematicEditorProps {
     designName?: string;
     onSave?: (design: SchematicDesign) => void;
     mode?: 'schematic' | 'microarchitecture';
+    projectId?: string;
 }
 
 // Custom node component for schematic components
@@ -166,12 +167,62 @@ const nodeTypes = {
     microarchComponent: MicroarchNode,
 };
 
-export const SchematicEditor = ({ isOpen, onClose, designName = 'untitled', onSave, mode = 'schematic' }: SchematicEditorProps) => {
+export const SchematicEditor = ({ isOpen, onClose, designName = 'untitled', onSave, mode = 'schematic', projectId }: SchematicEditorProps) => {
     const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState<any>([]);
     const [selectedCategory, setSelectedCategory] = useState<string>(mode === 'microarchitecture' ? 'cpu_core' : 'logic');
     const [showCodeModal, setShowCodeModal] = useState(false);
     const [generatedCode, setGeneratedCode] = useState('');
+
+    // Fetch data on mount
+    useEffect(() => {
+        if (isOpen && projectId && mode === 'microarchitecture') {
+            fetchMicroarchitecture();
+        }
+    }, [isOpen, projectId, mode]);
+
+    const fetchMicroarchitecture = async () => {
+        try {
+            const response = await fetch(`http://localhost:8000/api/projects/${projectId}/files/microarchitecture.json`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.content) {
+                    try {
+                        const design = JSON.parse(data.content);
+                        // Convert design format to React Flow nodes/edges
+                        const flowNodes = design.components.map((comp: any) => ({
+                            id: comp.id,
+                            type: mode === 'microarchitecture' ? 'microarchComponent' : 'schematicComponent',
+                            position: comp.position,
+                            data: {
+                                type: comp.type,
+                                label: comp.label || comp.type,
+                                ports: comp.ports || [],
+                                properties: comp.properties
+                            }
+                        }));
+
+                        // Convert wires to edges if any (assuming simple format for now)
+                        const flowEdges = (design.wires || []).map((wire: any) => ({
+                            id: wire.id,
+                            source: wire.source,
+                            target: wire.target,
+                            type: 'default',
+                            animated: true,
+                            style: { stroke: '#60a5fa', strokeWidth: 2 }
+                        }));
+
+                        setNodes(flowNodes);
+                        setEdges(flowEdges);
+                    } catch (e) {
+                        console.error('Failed to parse microarchitecture JSON', e);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Failed to fetch microarchitecture', error);
+        }
+    };
 
     const onConnect = useCallback(
         (params: Connection) => setEdges((eds) => addEdge({ ...params, animated: true, style: { stroke: '#60a5fa', strokeWidth: 2 } }, eds)),
@@ -263,7 +314,7 @@ export const SchematicEditor = ({ isOpen, onClose, designName = 'untitled', onSa
         setShowCodeModal(true);
     }, [nodes, edges, designName]);
 
-    const handleSave = useCallback(() => {
+    const handleSave = useCallback(async () => {
         const design: SchematicDesign = {
             id: Date.now().toString(),
             name: designName,
@@ -291,10 +342,29 @@ export const SchematicEditor = ({ isOpen, onClose, designName = 'untitled', onSa
             onSave(design);
         }
 
-        // Also save to localStorage
-        localStorage.setItem(`schematic_${designName}`, JSON.stringify(design));
-        alert('Schematic saved successfully!');
-    }, [nodes, edges, designName, onSave]);
+        if (projectId && mode === 'microarchitecture') {
+            try {
+                const response = await fetch(`http://localhost:8000/api/projects/${projectId}/files/microarchitecture.json`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: JSON.stringify(design, null, 2) }),
+                });
+
+                if (response.ok) {
+                    alert('Microarchitecture saved successfully!');
+                } else {
+                    alert('Failed to save microarchitecture.');
+                }
+            } catch (error) {
+                console.error('Failed to save microarchitecture', error);
+                alert('Failed to save microarchitecture.');
+            }
+        } else {
+            // Also save to localStorage
+            localStorage.setItem(`schematic_${designName}`, JSON.stringify(design));
+            alert('Schematic saved successfully (local)!');
+        }
+    }, [nodes, edges, designName, onSave, projectId, mode]);
 
     const downloadCode = useCallback(() => {
         const blob = new Blob([generatedCode], { type: 'text/plain' });
